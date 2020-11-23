@@ -9,7 +9,7 @@ hparams = HParams(
     freq = 8,
     dim_neck = 8,
     freq_2 = 8,
-    dim_neck_2 = 1,
+    dim_neck_2 = 8,
     freq_3 = 8,
     dim_neck_3 = 32,
     
@@ -17,7 +17,7 @@ hparams = HParams(
     dim_enc_2 = 128,
     dim_enc_3 = 256,
     
-    dim_freq = 80,
+    dim_freq = 513,
     dim_spk_emb = 82,
     dim_f0 = 257,
     dim_dec = 512,

@@ -139,17 +139,15 @@ class Solver(object):
 
             # Fetch real images and labels.
             try:
-                x_real_org, emb_org, f0_org, len_org = next(data_iter)
+                x_real_org = next(data_iter)
             except:
                 data_iter = iter(data_loader)
-                x_real_org, emb_org, f0_org, len_org = next(data_iter)
-            
-            x_real_org = x_real_org.to(self.device)
-            emb_org = emb_org.to(self.device)
+                x_real_org = next(data_iter)
+
+            len_org = torch.from_numpy(np.repeat(x_real_org.shape[-1], x_real_org.shape[0])).type(torch.FloatTensor)
+            x_real_org = x_real_org.to(self.device).transpose(1,2)
             len_org = len_org.to(self.device)
-            f0_org = f0_org.to(self.device)
             
-                    
             # =================================================================================== #
             #                               2. Train the generator                                #
             # =================================================================================== #
@@ -157,12 +155,10 @@ class Solver(object):
             self.G = self.G.train()
                         
             # Identity mapping loss
-            x_f0 = torch.cat((x_real_org, f0_org), dim=-1)
-            x_f0_intrp = self.Interp(x_f0, len_org) 
-            f0_org_intrp = quantize_f0_torch(x_f0_intrp[:,:,-1])[0]
-            x_f0_intrp_org = torch.cat((x_f0_intrp[:,:,:-1], f0_org_intrp), dim=-1)
+            x_intrp = self.Interp(x_real_org, len_org)
+
             
-            x_identic = self.G(x_f0_intrp_org, x_real_org, emb_org)
+            x_identic = self.G(x_intrp, x_real_org)
             g_loss_id = F.mse_loss(x_real_org, x_identic, reduction='mean') 
            
             # Backward and optimize.
@@ -200,70 +196,3 @@ class Solver(object):
                 torch.save({'model': self.G.state_dict(),
                             'optimizer': self.g_optimizer.state_dict()}, G_path)
                 print('Saved model checkpoints into {}...'.format(self.model_save_dir))            
-            
-
-            # Validation.
-            if (i+1) % self.sample_step == 0:
-                self.G = self.G.eval()
-                with torch.no_grad():
-                    loss_val = []
-                    for val_sub in validation_pt:
-                        emb_org_val = torch.from_numpy(val_sub[1]).to(self.device)         
-                        for k in range(2, 3):
-                            x_real_pad, _ = pad_seq_to_2(val_sub[k][0][np.newaxis,:,:], 192)
-                            len_org = torch.tensor([val_sub[k][2]]).to(self.device) 
-                            f0_org = np.pad(val_sub[k][1], (0, 192-val_sub[k][2]), 'constant', constant_values=(0, 0))
-                            f0_quantized = quantize_f0_numpy(f0_org)[0]
-                            f0_onehot = f0_quantized[np.newaxis, :, :]
-                            f0_org_val = torch.from_numpy(f0_onehot).to(self.device) 
-                            x_real_pad = torch.from_numpy(x_real_pad).to(self.device) 
-                            x_f0 = torch.cat((x_real_pad, f0_org_val), dim=-1)
-                            x_identic_val = self.G(x_f0, x_real_pad, emb_org_val)
-                            g_loss_val = F.mse_loss(x_real_pad, x_identic_val, reduction='sum')
-                            loss_val.append(g_loss_val.item())
-                val_loss = np.mean(loss_val) 
-                print('Validation loss: {}'.format(val_loss))
-                if self.use_tensorboard:
-                    self.writer.add_scalar('Validation_loss', val_loss, i+1)
-                    
-
-            # plot test samples
-            if (i+1) % self.sample_step == 0:
-                self.G = self.G.eval()
-                with torch.no_grad():
-                    for val_sub in validation_pt:
-                        emb_org_val = torch.from_numpy(val_sub[1]).to(self.device)         
-                        for k in range(2, 3):
-                            x_real_pad, _ = pad_seq_to_2(val_sub[k][0][np.newaxis,:,:], 192)
-                            len_org = torch.tensor([val_sub[k][2]]).to(self.device) 
-                            f0_org = np.pad(val_sub[k][1], (0, 192-val_sub[k][2]), 'constant', constant_values=(0, 0))
-                            f0_quantized = quantize_f0_numpy(f0_org)[0]
-                            f0_onehot = f0_quantized[np.newaxis, :, :]
-                            f0_org_val = torch.from_numpy(f0_onehot).to(self.device) 
-                            x_real_pad = torch.from_numpy(x_real_pad).to(self.device) 
-                            x_f0 = torch.cat((x_real_pad, f0_org_val), dim=-1)
-                            x_f0_F = torch.cat((x_real_pad, torch.zeros_like(f0_org_val)), dim=-1)
-                            x_f0_C = torch.cat((torch.zeros_like(x_real_pad), f0_org_val), dim=-1)
-                            
-                            x_identic_val = self.G(x_f0, x_real_pad, emb_org_val)
-                            x_identic_woF = self.G(x_f0_F, x_real_pad, emb_org_val)
-                            x_identic_woR = self.G(x_f0, torch.zeros_like(x_real_pad), emb_org_val)
-                            x_identic_woC = self.G(x_f0_C, x_real_pad, emb_org_val)
-                            
-                            melsp_gd_pad = x_real_pad[0].cpu().numpy().T
-                            melsp_out = x_identic_val[0].cpu().numpy().T
-                            melsp_woF = x_identic_woF[0].cpu().numpy().T
-                            melsp_woR = x_identic_woR[0].cpu().numpy().T
-                            melsp_woC = x_identic_woC[0].cpu().numpy().T
-                            
-                            min_value = np.min(np.hstack([melsp_gd_pad, melsp_out, melsp_woF, melsp_woR, melsp_woC]))
-                            max_value = np.max(np.hstack([melsp_gd_pad, melsp_out, melsp_woF, melsp_woR, melsp_woC]))
-                            
-                            fig, (ax1,ax2,ax3,ax4,ax5) = plt.subplots(5, 1, sharex=True)
-                            im1 = ax1.imshow(melsp_gd_pad, aspect='auto', vmin=min_value, vmax=max_value)
-                            im2 = ax2.imshow(melsp_out, aspect='auto', vmin=min_value, vmax=max_value)
-                            im3 = ax3.imshow(melsp_woC, aspect='auto', vmin=min_value, vmax=max_value)
-                            im4 = ax4.imshow(melsp_woR, aspect='auto', vmin=min_value, vmax=max_value)
-                            im5 = ax5.imshow(melsp_woF, aspect='auto', vmin=min_value, vmax=max_value)
-                            plt.savefig(f'{self.sample_dir}/{i+1}_{val_sub[0]}_{k}.png', dpi=150)
-                            plt.close(fig) 

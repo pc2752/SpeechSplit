@@ -29,7 +29,7 @@ import collections
 class LoopDataset(Dataset):
     """Face Landmarks dataset."""
 
-    def __init__(self, root_dir='/home/pc2752/share/loop_synth/Balanced_Loops', mode='ts_audios' , transform=None, output_size=128):
+    def __init__(self, config, hparams, transform=None, output_size=128):
         """
         Args:
             csv_file (string): Path to the csv file with annotations.
@@ -37,10 +37,12 @@ class LoopDataset(Dataset):
             transform (callable, optional): Optional transform to be applied
                 on a sample.
         """
-        self.root_dir = root_dir
+        self.root_dir = config.root_dir
+        self.mode = config.mode
         self.output_size = output_size
         self.transform = transform
-        self.file_list = [os.path.join(x[0], y) for x in os.walk(os.path.join(root_dir,mode)) for y in x[2] if y.endswith('.wav')]
+        self.file_list = [os.path.join(x[0], y) for x in os.walk(os.path.join(self.root_dir,self.mode)) for y in x[2] if y.endswith('.wav')]
+        self.max_len_pad = 192
 
         # [os.path.join(x[0], y) for x in os.walk('./ts_audios') for y in x[2] if y.endswith('.wav')]
 
@@ -84,8 +86,9 @@ class RandomCrop(object):
             is made.
     """
 
-    def __init__(self, output_size=128):
+    def __init__(self, output_size=128, padded_size=192):
         self.output_size = output_size
+        self.padded_size = padded_size
 
     def __call__(self, sample):
 
@@ -96,6 +99,8 @@ class RandomCrop(object):
 
         sample = sample[0,:,top: top + new_len]
 
+        sample = torch.from_numpy(np.pad(sample, ((0,0),(0,self.padded_size-sample.shape[1])), 'constant', constant_values=-1e10))
+
         return sample
 
 class ToTensor(object):
@@ -103,10 +108,9 @@ class ToTensor(object):
 
     def __call__(self, sample):
 
-
         return sample.type(torch.FloatTensor)
 
 
-def get_dataset():
-	dataset = LoopDataset(transform=transforms.Compose([STFT(), RandomCrop(128), ToTensor()]))
-	return DataLoader(dataset, batch_size=5,shuffle=True, num_workers=5)
+def get_dataset(config, hparams):
+	dataset = LoopDataset(config, hparams, transform=transforms.Compose([STFT(), RandomCrop(hparams.max_len_seq, hparams.max_len_pad), ToTensor()]))
+	return DataLoader(dataset, batch_size=16,shuffle=True, num_workers=5)

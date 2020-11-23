@@ -195,38 +195,34 @@ class Encoder_7(nn.Module):
         
         x = x_f0[:, :self.dim_freq, :]
         f0 = x_f0[:, self.dim_freq:, :]
+
         
         for conv_1, conv_2 in zip(self.convolutions_1, self.convolutions_2):
             x = F.relu(conv_1(x))
-            f0 = F.relu(conv_2(f0))
-            x_f0 = torch.cat((x, f0), dim=1).transpose(1, 2)
+
+            x_f0 = x.transpose(1, 2)
             x_f0 = self.interp(x_f0, self.len_org.expand(x.size(0)))
             x_f0 = x_f0.transpose(1, 2)
             x = x_f0[:, :self.dim_enc, :]
-            f0 = x_f0[:, self.dim_enc:, :]
+
             
             
         x_f0 = x_f0.transpose(1, 2)    
         x = x_f0[:, :, :self.dim_enc]
-        f0 = x_f0[:, :, self.dim_enc:]
         
         # code 1
         x = self.lstm_1(x)[0]
-        f0 = self.lstm_2(f0)[0]
         
         x_forward = x[:, :, :self.dim_neck]
         x_backward = x[:, :, self.dim_neck:]
         
-        f0_forward = f0[:, :, :self.dim_neck_3]
-        f0_backward = f0[:, :, self.dim_neck_3:]
+
         
         codes_x = torch.cat((x_forward[:,self.freq-1::self.freq,:], 
                              x_backward[:,::self.freq,:]), dim=-1)
+
         
-        codes_f0 = torch.cat((f0_forward[:,self.freq_3-1::self.freq_3,:], 
-                              f0_backward[:,::self.freq_3,:]), dim=-1)
-        
-        return codes_x, codes_f0      
+        return codes_x  
     
     
     
@@ -241,7 +237,7 @@ class Decoder_3(nn.Module):
         self.dim_freq = hparams.dim_freq
         self.dim_neck_3 = hparams.dim_neck_3
         
-        self.lstm = nn.LSTM(self.dim_neck*2+self.dim_neck_2*2+self.dim_neck_3*2+self.dim_emb, 
+        self.lstm = nn.LSTM(self.dim_neck*2+self.dim_neck_2*2, 
                             512, 3, batch_first=True, bidirectional=True)
         
         self.linear_projection = LinearNorm(1024, self.dim_freq)
@@ -294,20 +290,18 @@ class Generator_3(nn.Module):
         self.freq_3 = hparams.freq_3
 
 
-    def forward(self, x_f0, x_org, c_trg):
+    def forward(self, x_f0, x_org):
         
         x_1 = x_f0.transpose(2,1)
-        codes_x, codes_f0 = self.encoder_1(x_1)
+        codes_x = self.encoder_1(x_1)
         code_exp_1 = codes_x.repeat_interleave(self.freq, dim=1)
-        code_exp_3 = codes_f0.repeat_interleave(self.freq_3, dim=1)
         
         x_2 = x_org.transpose(2,1)
         codes_2 = self.encoder_2(x_2, None)
         code_exp_2 = codes_2.repeat_interleave(self.freq_2, dim=1)
         
-        encoder_outputs = torch.cat((code_exp_1, code_exp_2, code_exp_3, 
-                                     c_trg.unsqueeze(1).expand(-1,x_1.size(-1),-1)), dim=-1)
-        
+        encoder_outputs = torch.cat((code_exp_1, code_exp_2), dim=-1)
+
         mel_outputs = self.decoder(encoder_outputs)
         
         return mel_outputs

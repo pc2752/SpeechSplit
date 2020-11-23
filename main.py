@@ -4,7 +4,8 @@ import torch
 from torch.backends import cudnn
 
 from solver import Solver
-from data_loader import get_loader
+# from data_loader import get_loader
+from loop_dataset import get_dataset
 from hparams import hparams, hparams_debug_string
 
 
@@ -25,7 +26,7 @@ def main(config):
         os.makedirs(config.sample_dir)
 
     # Data loader.
-    vcc_loader = get_loader(hparams)
+    vcc_loader = get_dataset(config, hparams)
     
     # Solver for training
     solver = Solver(vcc_loader, config, hparams)
@@ -38,6 +39,8 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
    
     # Training configuration.
+    parser.add_argument('--root_dir', type=str, default='/home/pc2752/share/loop_synth/Balanced_Loops', help="Directory where the Baalanced Loops are stored")
+    parser.add_argument('--mode', type=str, default='ts_audios', help="Directory where the Baalanced Loops are stored")
     parser.add_argument('--num_iters', type=int, default=1000000, help='number of total iterations')
     parser.add_argument('--g_lr', type=float, default=0.0001, help='learning rate for G')
     parser.add_argument('--beta1', type=float, default=0.9, help='beta1 for Adam optimizer')
