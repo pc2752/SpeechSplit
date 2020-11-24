@@ -7,9 +7,9 @@ from tfcompat.hparam import HParams
 hparams = HParams(
     # model   
     freq = 8,
-    dim_neck = 8,
+    dim_neck = 32,
     freq_2 = 8,
-    dim_neck_2 = 8,
+    dim_neck_2 = 32,
     freq_3 = 8,
     dim_neck_3 = 32,
     
@@ -19,7 +19,7 @@ hparams = HParams(
     
     dim_freq = 513,
     dim_spk_emb = 82,
-    dim_f0 = 257,
+    dim_f0 = 513,
     dim_dec = 512,
     len_raw = 128,
     chs_grp = 16,
@@ -28,8 +28,8 @@ hparams = HParams(
     min_len_seg = 19,
     max_len_seg = 32,
     min_len_seq = 64,
-    max_len_seq = 128,
-    max_len_pad = 192,
+    max_len_seq = 64,
+    max_len_pad = 96,
     
     # data loader
     root_dir = 'assets/spmel',

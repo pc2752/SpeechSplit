@@ -13,7 +13,9 @@ import numpy as np
 import matplotlib.pyplot as plt
 from torch.utils.data import Dataset, DataLoader
 from torchvision import transforms, utils
+import soundfile as sf
 import torchaudio
+import utils
 
 # Ignore warnings
 import warnings
@@ -29,7 +31,7 @@ import collections
 class LoopDataset(Dataset):
     """Face Landmarks dataset."""
 
-    def __init__(self, config, hparams, transform=None, output_size=128):
+    def __init__(self, root_dir, config, hparams, transform=None, output_size=128):
         """
         Args:
             csv_file (string): Path to the csv file with annotations.
@@ -37,7 +39,7 @@ class LoopDataset(Dataset):
             transform (callable, optional): Optional transform to be applied
                 on a sample.
         """
-        self.root_dir = config.root_dir
+        self.root_dir = root_dir
         self.mode = config.mode
         self.output_size = output_size
         self.transform = transform
@@ -54,7 +56,7 @@ class LoopDataset(Dataset):
         if torch.is_tensor(idx):
             idx = idx.tolist()
 
-        sample, fs = torchaudio.load(self.file_list[idx])
+        sample, fs = sf.read(self.file_list[idx])
 
         if self.transform:
             sample = self.transform(sample)
@@ -71,11 +73,11 @@ class STFT(object):
     """
 
     def __init__(self):
-        self.stft_transform = torchaudio.transforms.Spectrogram(n_fft=1024, win_length=1024, hop_length=512)
+        self.stft_transform = torchaudio.transforms.Spectrogram(n_fft=1024, win_length=1024, hop_length=512, normalized=True)
 
     def __call__(self, sample):
 
-        return self.stft_transform(sample)
+        return abs(utils.stft(sample))
 
 
 class RandomCrop(object):
@@ -97,7 +99,7 @@ class RandomCrop(object):
 
         top = np.random.randint(0, len_song - new_len)
 
-        sample = sample[0,:,top: top + new_len]
+        sample = np.clip(sample[top: top + new_len, :].T, 0.0, 1.0)
 
         sample = torch.from_numpy(np.pad(sample, ((0,0),(0,self.padded_size-sample.shape[1])), 'constant', constant_values=-1e10))
 
@@ -111,6 +113,6 @@ class ToTensor(object):
         return sample.type(torch.FloatTensor)
 
 
-def get_dataset(config, hparams):
-	dataset = LoopDataset(config, hparams, transform=transforms.Compose([STFT(), RandomCrop(hparams.max_len_seq, hparams.max_len_pad), ToTensor()]))
+def get_dataset(root_dir, config, hparams):
+	dataset = LoopDataset(root_dir, config, hparams, transform=transforms.Compose([STFT(), RandomCrop(hparams.max_len_seq, hparams.max_len_pad), ToTensor()]))
 	return DataLoader(dataset, batch_size=16,shuffle=True, num_workers=5)
