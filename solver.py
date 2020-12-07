@@ -159,12 +159,13 @@ class Solver(object):
 
             # Fetch real images and labels.
             try:
-                x_real_org = next(data_iter)
+                x_real_org, len_org = next(data_iter)
             except:
                 data_iter = iter(data_loader)
-                x_real_org = next(data_iter)
+                x_real_org, len_org = next(data_iter)
 
-            len_org = torch.from_numpy(np.repeat(x_real_org.shape[-1], x_real_org.shape[0])).type(torch.FloatTensor)
+            # len_org = torch.from_numpy(np.repeat(x_real_org.shape[-1], x_real_org.shape[0])).type(torch.FloatTensor)
+            # import pdb;pdb.set_trace()
             x_real_org = x_real_org.to(self.device).transpose(1,2)
             len_org = len_org.to(self.device)
             
@@ -181,12 +182,12 @@ class Solver(object):
 
             g_loss_id = F.mse_loss(x_real_org, x_identic) 
 
-            _, code_reconst = self.G(x_identic, x_identic)
+            # _, code_reconst = self.G(x_identic, x_identic)
 
-            g_loss_cd = F.l1_loss(code_real, code_reconst)
+            # g_loss_cd = F.l1_loss(code_real, code_reconst)
            
             # Backward and optimize.
-            g_loss = g_loss_id + g_loss_cd
+            g_loss = g_loss_id
 
             self.reset_grad()
             g_loss.backward()
@@ -194,11 +195,11 @@ class Solver(object):
 
             # Logging.
             recon_loss+=g_loss_id.item()
-            content_loss+=g_loss_cd.item()
+            # content_loss+=g_loss_cd.item()
 
             self.train_writer.add_scalar('Reconstruction',g_loss_id.item(), it+1)
-            self.train_writer.add_scalar('Content',g_loss_cd.item(), it+1)
-            self.train_writer.add_scalar('Total_Loss',g_loss.item(), it+1)
+            # self.train_writer.add_scalar('Content',g_loss_cd.item(), it+1)
+            # self.train_writer.add_scalar('Total_Loss',g_loss.item(), it+1)
             
 
             # =================================================================================== #
@@ -208,12 +209,12 @@ class Solver(object):
             self.G = self.G.eval()
 
             try:
-                x_real_org = next(val_iter)
+                x_real_org, len_org = next(val_iter)
             except:
-                val_iter = iter(val_loader)
-                x_real_org = next(val_iter)
-            
-            len_org = torch.from_numpy(np.repeat(x_real_org.shape[-1], x_real_org.shape[0])).type(torch.FloatTensor)
+                data_iter = iter(data_loader)
+                x_real_org, len_org = next(val_iter)
+
+            # len_org = torch.from_numpy(np.repeat(x_real_org.shape[-1], x_real_org.shape[0])).type(torch.FloatTensor)
             x_real_org = x_real_org.to(self.device).transpose(1,2)
             len_org = len_org.to(self.device)
 
@@ -222,20 +223,22 @@ class Solver(object):
             x_identic, code_real = self.G(x_intrp, x_real_org)
             g_loss_id = F.mse_loss(x_real_org, x_identic) 
 
-            _, code_reconst = self.G(x_identic, x_identic)
+            # _, code_reconst = self.G(x_identic, x_identic)
 
-            g_loss_cd = F.l1_loss(code_real, code_reconst)
+            # g_loss_cd = F.l1_loss(code_real, code_reconst)
            
             # Backward and optimize.
-            g_loss_val = g_loss_id + g_loss_cd
+            g_loss_val = g_loss_id 
+
+
 
             # Logging.
             val_recon_loss+=g_loss_id.item()
-            val_content_loss+=g_loss_cd.item()
+            # val_content_loss+=g_loss_cd.item()
 
             self.val_writer.add_scalar('Reconstruction',g_loss_id.item(), it+1)
-            self.val_writer.add_scalar('Content',g_loss_cd.item(), it+1)
-            self.val_writer.add_scalar('Total_Loss',g_loss_val.item(), it+1)
+            # self.val_writer.add_scalar('Content',g_loss_cd.item(), it+1)
+            # self.val_writer.add_scalar('Total_Loss',g_loss_val.item(), it+1)
 
             utils.progress(count, self.log_step, "Loss: {:.2f} Val: {:.2f}".format(g_loss.item(),g_loss_val.item()))
 
@@ -250,10 +253,10 @@ class Solver(object):
                 epoch+=1
                 loss = {}
                 loss['Recon Loss'] = recon_loss/self.log_step
-                loss['Content Loss'] = content_loss/self.log_step
+                # loss['Content Loss'] = content_loss/self.log_step
 
                 loss['Val Recon Loss'] = val_recon_loss/self.log_step
-                loss['Val Content Loss'] = val_content_loss/self.log_step
+                # loss['Val Content Loss'] = val_content_loss/self.log_step
 
                 et = str(datetime.timedelta(seconds=et))[:-7]
                 self.save_checkpoint(model=self.G, optimizer=self.g_optimizer,\

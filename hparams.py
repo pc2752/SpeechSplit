@@ -7,14 +7,14 @@ from tfcompat.hparam import HParams
 hparams = HParams(
     # model   
     freq = 8,
-    dim_neck = 32,
+    dim_neck = 512,
     freq_2 = 8,
-    dim_neck_2 = 32,
+    dim_neck_2 = 512,
     freq_3 = 8,
-    dim_neck_3 = 32,
+    dim_neck_3 = 512,
     
     dim_enc = 512,
-    dim_enc_2 = 128,
+    dim_enc_2 = 512,
     dim_enc_3 = 256,
     
     dim_freq = 513,
@@ -27,7 +27,7 @@ hparams = HParams(
     # interp
     min_len_seg = 19,
     max_len_seg = 32,
-    min_len_seq = 64,
+    min_len_seq = 32,
     max_len_seq = 64,
     max_len_pad = 96,
     

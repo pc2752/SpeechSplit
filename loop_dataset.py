@@ -44,7 +44,6 @@ class LoopDataset(Dataset):
         self.output_size = output_size
         self.transform = transform
         self.file_list = [os.path.join(x[0], y) for x in os.walk(os.path.join(self.root_dir,self.mode)) for y in x[2] if y.endswith('.wav')]
-        self.max_len_pad = 192
 
         # [os.path.join(x[0], y) for x in os.walk('./ts_audios') for y in x[2] if y.endswith('.wav')]
 
@@ -88,31 +87,37 @@ class RandomCrop(object):
             is made.
     """
 
-    def __init__(self, output_size=128, padded_size=192):
+    def __init__(self, min_output_size=64, output_size=128, padded_size=192):
+        self.min_output_size = min_output_size
         self.output_size = output_size
         self.padded_size = padded_size
 
     def __call__(self, sample):
 
         len_song = sample.shape[-1]
-        new_len = self.output_size
+
+        new_len = np.random.randint(self.min_output_size, self.output_size)
 
         top = np.random.randint(0, len_song - new_len)
+
+
 
         sample = np.clip(sample[top: top + new_len, :].T, 0.0, 1.0)
 
         sample = torch.from_numpy(np.pad(sample, ((0,0),(0,self.padded_size-sample.shape[1])), 'constant', constant_values=-1e10))
 
-        return sample
+        new_len = torch.from_numpy(np.array(new_len))
+
+        return sample, new_len
 
 class ToTensor(object):
     """Convert ndarrays in sample to Tensors."""
 
     def __call__(self, sample):
 
-        return sample.type(torch.FloatTensor)
+        return sample[0].type(torch.FloatTensor), sample[1]
 
 
 def get_dataset(root_dir, config, hparams):
-	dataset = LoopDataset(root_dir, config, hparams, transform=transforms.Compose([STFT(), RandomCrop(hparams.max_len_seq, hparams.max_len_pad), ToTensor()]))
+	dataset = LoopDataset(root_dir, config, hparams, transform=transforms.Compose([STFT(), RandomCrop(hparams.min_len_seq, hparams.max_len_seq, hparams.max_len_pad), ToTensor()]))
 	return DataLoader(dataset, batch_size=16,shuffle=True, num_workers=5)
