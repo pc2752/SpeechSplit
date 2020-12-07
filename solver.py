@@ -240,7 +240,7 @@ class Solver(object):
             # self.val_writer.add_scalar('Content',g_loss_cd.item(), it+1)
             # self.val_writer.add_scalar('Total_Loss',g_loss_val.item(), it+1)
 
-            utils.progress(count, self.log_step, "Loss: {:.2f} Val: {:.2f}".format(g_loss.item(),g_loss_val.item()))
+            utils.progress(count, self.log_step, "Loss: {} Val: {}".format(g_loss.item(),g_loss_val.item()))
 
             # =================================================================================== #
             #                                 4. Miscellaneous                                    #

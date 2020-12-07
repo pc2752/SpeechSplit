@@ -299,7 +299,6 @@ class Generator_3(nn.Module):
         x_2 = x_org.transpose(2,1)
         codes_2 = self.encoder_2(x_2, None)
         code_exp_2 = codes_2.repeat_interleave(self.freq_2, dim=1)
-
         
         encoder_outputs = torch.cat((code_exp_1, code_exp_2), dim=-1)
 
