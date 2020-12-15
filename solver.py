@@ -164,6 +164,7 @@ class Solver(object):
                 data_iter = iter(data_loader)
                 x_real_org, len_org = next(data_iter)
 
+
             # len_org = torch.from_numpy(np.repeat(x_real_org.shape[-1], x_real_org.shape[0])).type(torch.FloatTensor)
             # import pdb;pdb.set_trace()
             x_real_org = x_real_org.to(self.device).transpose(1,2)

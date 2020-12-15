@@ -6,9 +6,9 @@ from tfcompat.hparam import HParams
 # Default hyperparameters:
 hparams = HParams(
     # model   
-    freq = 8,
+    freq = 4,
     dim_neck = 512,
-    freq_2 = 8,
+    freq_2 = 4,
     dim_neck_2 = 512,
     freq_3 = 8,
     dim_neck_3 = 512,
@@ -27,9 +27,9 @@ hparams = HParams(
     # interp
     min_len_seg = 19,
     max_len_seg = 32,
-    min_len_seq = 32,
-    max_len_seq = 64,
-    max_len_pad = 96,
+    min_len_seq = 167,
+    max_len_seq = 167,
+    max_len_pad = 192,
     
     # data loader
     root_dir = 'assets/spmel',

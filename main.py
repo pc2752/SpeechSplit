@@ -41,7 +41,7 @@ if __name__ == '__main__':
     # Training configuration.
     parser.add_argument('--root_dir', type=str, default='/home/pc2752/share/loop_synth/Balanced_Loops', help="Directory where the Balanced Loops are stored")
     parser.add_argument('--val_root_dir', type=str, default='/home/pc2752/share/loop_synth/Freesound_Loops', help="Directory where the Freesound Loops are stored")
-    parser.add_argument('--mode', type=str, default='ts_audios', help="Mode to use, could be ts_audios or chopped audios")
+    parser.add_argument('--mode', type=str, default='chopped_audios', help="Mode to use, could be ts_audios or chopped audios")
     parser.add_argument('--num_iters', type=int, default=10, help='number of total iterations')
     parser.add_argument('--g_lr', type=float, default=0.0001, help='learning rate for G')
     parser.add_argument('--beta1', type=float, default=0.9, help='beta1 for Adam optimizer')

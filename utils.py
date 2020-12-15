@@ -5,7 +5,7 @@ from scipy import signal
 from librosa.filters import mel
 from scipy.signal import get_window
 import sys
-
+from tqdm import tqdm
 
 
 def butter_highpass(cutoff, fs, order=5):
@@ -108,8 +108,8 @@ def griffinlim(spectrogram, n_iter = 50, window = 'hann', n_fft = 1024, hop_leng
     t = tqdm(range(n_iter), ncols=100, mininterval=2.0, disable=not verbose)
     for i in t:
         # full = np.abs(spectrogram).astype(np.complex) * angles
-        inverse = istft(spectrogram,angles, hopsize = config.hopsize, nfft = config.nfft, fs = config.fs, window = config.window)
-        rebuilt = stft(inverse, hopsize = config.hopsize, nfft = config.nfft, fs = config.fs, window = config.window)[:spectrogram.shape[0],:]
+        inverse = istft(spectrogram,angles, window=np.hanning(1024), hopsize=256, nfft=1024, fs=16000)
+        rebuilt = stft(inverse,window=np.hanning(1024), hopsize=256, nfft=1024, fs=16000)[:spectrogram.shape[0],:]
         angles = np.exp(1j * np.angle(rebuilt))
         progress(i,n_iter)
         # import pdb;pdb.set_trace()
@@ -119,7 +119,7 @@ def griffinlim(spectrogram, n_iter = 50, window = 'hann', n_fft = 1024, hop_leng
             t.set_postfix(loss=np.linalg.norm(diff, 'fro'))
 
     # full = np.abs(spectrogram).astype(np.complex) * angles
-    inverse = istft(spectrogram, angles, hopsize = config.hopsize, nfft = config.nfft, fs = config.fs, window = config.window)
+    inverse = istft(spectrogram, angles, window=np.hanning(1024),  hopsize=256, nfft=1024, fs=16000)
 
     return inverse
 
@@ -142,7 +142,7 @@ def nan_helper(y):
     return np.isinf(y), lambda z: z.nonzero()[0]
 
 def stft(data, window=np.hanning(1024),
-         hopsize=512, nfft=1024, fs=44100):
+         hopsize=256, nfft=1024, fs=16000):
     """
     X, F, N = stft(data,window=sinebell(2048),hopsize=1024.0,
                    nfft=2048.0,fs=44100)
@@ -216,7 +216,7 @@ def stft(data, window=np.hanning(1024),
     
     return STFT
 def istft(mag, phase, window=np.hanning(1024),
-         hopsize=512, nfft=1024, fs=44100,
+         hopsize=256, nfft=1024, fs=16000,
           analysisWindow=None):
     """
     data = istft_norm(X,window=sinebell(2048),hopsize=1024.0,nfft=2048.0,fs=44100)
